@@ -28,10 +28,10 @@ Class : Super {
   ... ...
 }
 My File
-Class_hook4pod : NewSuper(If need) {
+Class_h4p : NewSuper(If need) {
   @property (weak | strong | copy) property_a2p;
   ... ...
-  method_hook4pod { self.property_a2p = ... }
+  method_h4m { self.property_a2p = ... }
 }
 ```
 ## CocoaPods
