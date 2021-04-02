@@ -1,9 +1,10 @@
 //
 //  ObjcHook4pod.m
-//  ```
+//  ObjCHook4pod
 //
 //  Created by MeterWhite on 2021/2/25.
 //  Copyright © 2021 Meterwhite. All rights reserved.
+//  https://github.com/Meterwhite/ObjcHook4pod
 //
 
 #import "ObjcHook4pod.h"
@@ -101,15 +102,16 @@ static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_
     return NO;
 }
 
+/// 返回0以使用isEqual:
 - (NSUInteger)hash {
     return 0;
 }
 
 + (instancetype)property:(objc_property_t)property {
     H4pInstanceProperty *_self = [H4pInstanceProperty.alloc init];
-    NSString *pt_att    = [[NSString stringWithUTF8String:property_getAttributes(property)] copy];
-    NSString *ptName    = [[NSString stringWithUTF8String:property_getName(property)] copy];
-    NSArray  *flags     = [pt_att componentsSeparatedByString:@","];
+    NSString *pt_att           = [[NSString stringWithUTF8String:property_getAttributes(property)] copy];
+    NSString *ptName           = [[NSString stringWithUTF8String:property_getName(property)] copy];
+    NSArray  *flags            = [pt_att componentsSeparatedByString:@","];
     for (NSString *flag in flags) {
         // readonly 不支持
         if ([flag hasPrefix:@"R"]) {
@@ -228,8 +230,8 @@ static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_
 + (void)runtimeWork {
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        _map_category_OP = [NSMapTable mapTableWithKeyOptions:NSPointerFunctionsWeakMemory|NSPointerFunctionsObjectPersonality valueOptions:NSPointerFunctionsStrongMemory|NSPointerFunctionsObjectPersonality];
-        _map_category_CP = [NSMapTable mapTableWithKeyOptions:NSPointerFunctionsStrongMemory|NSPointerFunctionsObjectPersonality valueOptions:NSPointerFunctionsStrongMemory|NSPointerFunctionsObjectPersonality];
+        _map_category_OP = [NSMapTable mapTableWithKeyOptions:NSPointerFunctionsWeakMemory | NSPointerFunctionsObjectPersonality valueOptions:NSPointerFunctionsStrongMemory | NSPointerFunctionsObjectPersonality];
+        _map_category_CP = [NSMapTable mapTableWithKeyOptions:NSPointerFunctionsStrongMemory | NSPointerFunctionsObjectPersonality valueOptions:NSPointerFunctionsStrongMemory | NSPointerFunctionsObjectPersonality];
         [self hookWork];
         [self categoryWork];
     });
@@ -374,14 +376,14 @@ NS_INLINE H4pInstanceProperty *_Nonnull propertyWithObjectSelector(id _Nonnull o
     return property;
 }
 
-/// 被触发setter；在此处条件断点调试；
+/// 分类添加的属性setter；开发者以在此处通过条件断点调试；
 void called_category_property_setter(id object, SEL sel, id value) {
     H4pInstanceProperty *pt = propertyWithObjectSelector(object, sel, true);
     assert(pt);
     [pt setValue:value];
 }
 
-/// 被触发getter；在此处条件断点调试；
+/// 分类添加的属性getter；开发者以在此处通过条件断点调试；
 id called_category_property_getter(id object, SEL sel) {
     H4pInstanceProperty *pt = propertyWithObjectSelector(object, sel, false);
     assert(pt);
