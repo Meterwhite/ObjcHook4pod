@@ -7,14 +7,14 @@
 1. 首先拷贝你的目标文件
 2. 在类名增加后缀'_h4p'(是Hook4pod的缩写)；
 3. 在方法名增加后缀'_h4m'则作为钩子替换原方法；
-4. 添加一个后缀为'_a2p'的属性可以为目标类添加一个示例属性，并且支持weak,strong,copy；
+4. 添加一个后缀为'_a2p'的属性可以为目标类添加一个实例属性，并且支持weak,strong,copy；（不支持基础类型）
 5. 如果需要替换目标类的基类可以指定你的类型的基类为相异类型；
 >> (Translated by Google)
 For: You want to modify CocoaPods code and you want to use the latest code with each update. The open source library invades the source code as a file to override the specified methods of the target class, add new properties of the target class, and even replace the base class of the target class.
 >> 1. Copy the target class file
 >> 2. Add the suffix '_h4p' to the class name (which is short for Hook4pod);
 >> 3. Add the suffix '_h4m' to the method name to replace the original method as a hook;
-Add an attribute suffix '_a2p' to add an example attribute for the target class, and support weak,strong, and copy;
+Add an attribute suffix '_a2p' to add an example attribute for the target class, and support weak,strong, and copy;(Base types are not supported)
 >> 5. If you need to replace the base class of the target class, you can specify that the base class of your type is a different type;
 
 ```  
