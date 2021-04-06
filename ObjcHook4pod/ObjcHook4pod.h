@@ -21,7 +21,8 @@
  * Class_h4p : NewSuper(If need) {
  *   @property (weak | strong | copy) property_a2p;
  *   ... ...
- *   method_h4p { self.property_a2p = ... }
+ *   method_h4m { self.property_a2p = ... }
+ *   method_a2m { self.property_a2p = ... }
  * }
  */
 @interface ObjcHook4pod : NSObject

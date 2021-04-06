@@ -241,17 +241,16 @@ static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_
     unsigned int count  = 0;
     Class       *clzLi  = objc_copyClassList(&count);
     NSString    *suffix_hook    = @"_h4p";
-    NSString    *suffix_md      = @"_h4m";
+    NSString    *suffix_h4m     = @"_h4m";
+    NSString    *suffix_a2m     = @"_a2m";
     do {
         Class       clz         = clzLi[count - 1];
         NSString    *clzName    = NSStringFromClass(clz);
         if(![clzName containsString:suffix_hook]) continue;
         do {
-            NSString *orgClzName;
-            Class    orgClz;
             /// 同步父类
-            orgClzName= [clzName componentsSeparatedByString:suffix_hook].firstObject;
-            orgClz      = NSClassFromString(orgClzName);
+            NSString*orgClzName = [clzName componentsSeparatedByString:suffix_hook].firstObject;
+            Class   orgClz      = NSClassFromString(orgClzName);
             Class   superClz    = class_getSuperclass(clz);
             Class   orgSuperClz = class_getSuperclass(orgClz);
             if(superClz != orgSuperClz) {
@@ -265,29 +264,39 @@ static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_
             Method *itMethodLi = class_copyMethodList(clz, &itMethodCount);
             for(int i = 0; i < itMethodCount; i++) {
                 NSString *methodName = NSStringFromSelector(method_getName(itMethodLi[i]));
-                if([methodName containsString:suffix_md]) {
-                    /// Hook
+                if([methodName containsString:suffix_h4m]) {
+                    /// Hook method
                     Method      method          = class_getInstanceMethod(clz, NSSelectorFromString(methodName));
-                    NSString    *orgMethodName  = [methodName componentsSeparatedByString:suffix_md].firstObject;
+                    NSString    *orgMethodName  = [methodName componentsSeparatedByString:suffix_h4m].firstObject;
                     Method      orgMethod       = class_getInstanceMethod(orgClz, NSSelectorFromString(orgMethodName));
                     method_setImplementation(orgMethod, method_getImplementation(method));
+                } else if ([methodName containsString:suffix_a2m]) {
+                    /// Add method
+                    Method      method          = class_getInstanceMethod(clz, NSSelectorFromString(methodName));
+                    class_addMethod(orgClz, NSSelectorFromString(methodName), method_getImplementation(method), method_getTypeEncoding(method));
                 }
             }
             free(itMethodLi);
             /// 类型方法
             unsigned int clzMethodCount;
-            clz = object_getClass(clz);
+            clz     = object_getClass(clz);
+            orgClz  = object_getClass(orgClz);
             Method *clzMethodLi = class_copyMethodList(clz, &clzMethodCount);
             for(int i = 0; i < clzMethodCount; i++) {
                 NSString *methodName = NSStringFromSelector(method_getName(clzMethodLi[i]));
-                if(![methodName containsString:suffix_md]) continue;
-                Method      method          = class_getInstanceMethod(clz, NSSelectorFromString(methodName));
-                NSString    *orgMethodName  = [methodName componentsSeparatedByString:suffix_md].firstObject;
-                Method      orgMethod       = class_getInstanceMethod(orgClz, NSSelectorFromString(orgMethodName));
-                method_setImplementation(orgMethod, method_getImplementation(method));
+                if([methodName containsString:suffix_h4m]) {
+                    /// Hook method
+                    Method      method          = class_getInstanceMethod(clz, NSSelectorFromString(methodName));
+                    NSString    *orgMethodName  = [methodName componentsSeparatedByString:suffix_h4m].firstObject;
+                    Method      orgMethod       = class_getInstanceMethod(orgClz, NSSelectorFromString(orgMethodName));
+                    method_setImplementation(orgMethod, method_getImplementation(method));
+                } else if([methodName containsString:suffix_h4m]) {
+                    /// Add method
+                    Method      method          = class_getInstanceMethod(clz, NSSelectorFromString(methodName));
+                    class_addMethod(orgClz, NSSelectorFromString(methodName), method_getImplementation(method), method_getTypeEncoding(method));
+                }
             }
             free(clzMethodLi);
-            
         } while (0);
     }while(--count);
     free(clzLi);
