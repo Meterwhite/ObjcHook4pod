@@ -290,7 +290,7 @@ static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_
                     NSString    *orgMethodName  = [methodName componentsSeparatedByString:suffix_h4m].firstObject;
                     Method      orgMethod       = class_getInstanceMethod(orgClz, NSSelectorFromString(orgMethodName));
                     method_setImplementation(orgMethod, method_getImplementation(method));
-                } else if([methodName containsString:suffix_h4m]) {
+                } else if([methodName containsString:suffix_a2m]) {
                     /// Add method
                     Method      method          = class_getInstanceMethod(clz, NSSelectorFromString(methodName));
                     class_addMethod(orgClz, NSSelectorFromString(methodName), method_getImplementation(method), method_getTypeEncoding(method));
