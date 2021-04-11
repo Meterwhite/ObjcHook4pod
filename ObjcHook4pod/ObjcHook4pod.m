@@ -347,6 +347,80 @@ static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_
     free(clzLi);
 }
 
++ (void)resourceHook {
+    NSString        *bundlePath     = [[NSBundle mainBundle] pathForResource:NSStringFromClass(self) ofType:@"bundle"];
+    NSString        *mainbunlePath  = [NSBundle.mainBundle resourcePath];
+    NSAssert(bundlePath, @"Nonnull");
+    NSFileManager   *fm             = [NSFileManager defaultManager];
+    NSError         *err;
+    NSArray <NSString *>* dirs      = [fm contentsOfDirectoryAtPath:bundlePath error:&err];
+    for (NSString *dirName in dirs) {
+        // 被拷贝子项的文件夹
+        NSString *fromPath = [bundlePath stringByAppendingPathComponent:dirName];/// bundle_h4p/dst
+        if([dirName isEqualToString:@"mainBundle"]) {
+            // 要拷贝到mainBunle的
+            [self copyFrom:fromPath to:mainbunlePath];
+        } else {
+            // 要拷贝到指定目录的的路径
+            NSArray <NSString *>*   fNames          = [fm contentsOfDirectoryAtPath:fromPath error:&err];
+            NSMutableArray          *dstDirLastCpt  = NSMutableArray.array;/// 用于拼接目标地址的后缀
+            for (NSString *fName in fNames) { /// bundle/dst/xxx
+                NSString *fpath = [fromPath stringByAppendingPathComponent:fName];
+                // 查找配置文件
+                if([fName isEqualToString:@"h4p"]) {/// bundle/dst/h4p
+                    NSString *content = [NSString stringWithContentsOfFile:fpath encoding:(NSUTF8StringEncoding) error:&err];
+                    [dstDirLastCpt addObjectsFromArray:[content componentsSeparatedByString:@"\n"]];
+                    break;
+                }
+            }
+            // 从配置文件的信息中去取得目标文件夹的位置
+            for (NSString *lastCpt in dstDirLastCpt) {
+                NSString *dstPath = nil;
+                if([lastCpt isEqualToString:@"mainBundle"]) {
+                    dstPath = [mainbunlePath stringByAppendingPathComponent:dirName];
+                    if([fm fileExistsAtPath:dstPath]) {
+                        [self copyFrom:fromPath to:dstPath];
+                        break;
+                    }
+                } else {
+                    dstPath = [mainbunlePath stringByAppendingPathComponent:lastCpt];
+                    dstPath = [dstPath stringByAppendingPathComponent:dirName];
+                    if([fm fileExistsAtPath:dstPath]) {
+                        [self copyFrom:fromPath to:dstPath];
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// 前提是
+/// @param from 被拷贝内容的父级
+/// @param to   目标文件夹的父级
++ (void)copyFrom:(NSString *)from to:(NSString *)to {
+    NSError         *err;
+    NSFileManager   *fm         = [NSFileManager defaultManager];
+    NSString        *h4p        = [to stringByAppendingPathComponent:@"h4p"];/// h4p文件除了配置的作用还被拿来标记是否进行过资源替换
+    NSArray <NSString *>* files = [fm contentsOfDirectoryAtPath:from error:&err];
+    if([fm fileExistsAtPath:h4p]) {
+        return;
+    }
+    for (NSString* file in files) {
+        NSString *dstFile = [to stringByAppendingPathComponent:file];
+        if([fm fileExistsAtPath:dstFile]) {
+            [fm removeItemAtPath:dstFile error:&err];
+            [fm copyItemAtPath:[from stringByAppendingPathComponent:file] toPath:dstFile error:&err];
+        } else {
+            [fm copyItemAtPath:[from stringByAppendingPathComponent:file] toPath:dstFile error:&err];
+        }
+    }
+    if(![fm fileExistsAtPath:h4p]) {
+        [fm createFileAtPath:h4p contents:nil attributes:nil];
+    }
+    /// 拷贝完成，如果没有h4p文件则创建一个
+}
+
 @end
 
 NS_INLINE H4pInstanceProperty *_Nonnull propertyWithObjectSelector(id _Nonnull object, SEL _Nonnull sel, bool isSetter) {
