@@ -18,9 +18,9 @@ typedef enum : NSUInteger {
 
 @class H4pInstanceProperty;
 
-void called_category_property_setter(id object, SEL sel, id value);
+void a2p_category_property_setter(id object, SEL sel, id value);
 
-id called_category_property_getter(id object, SEL sel);
+id a2p_category_property_getter(id object, SEL sel);
 
 /// object(weak) --- propertys; property --- value
 /// 对象映射属性集合，属性映射值
@@ -246,7 +246,7 @@ static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_
     do {
         Class       clz         = clzLi[count - 1];
         NSString    *clzName    = NSStringFromClass(clz);
-        if(![clzName containsString:suffix_hook]) continue;
+        if(![clzName hasSuffix:suffix_hook]) continue;
         do {
             /// 同步父类
             NSString*orgClzName = [clzName componentsSeparatedByString:suffix_hook].firstObject;
@@ -264,13 +264,13 @@ static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_
             Method *itMethodLi = class_copyMethodList(clz, &itMethodCount);
             for(int i = 0; i < itMethodCount; i++) {
                 NSString *methodName = NSStringFromSelector(method_getName(itMethodLi[i]));
-                if([methodName containsString:suffix_h4m]) {
+                if([methodName hasSuffix:suffix_h4m]) {
                     /// Hook method
                     Method      method          = class_getInstanceMethod(clz, NSSelectorFromString(methodName));
                     NSString    *orgMethodName  = [methodName componentsSeparatedByString:suffix_h4m].firstObject;
                     Method      orgMethod       = class_getInstanceMethod(orgClz, NSSelectorFromString(orgMethodName));
                     method_setImplementation(orgMethod, method_getImplementation(method));
-                } else if ([methodName containsString:suffix_a2m]) {
+                } else if ([methodName hasSuffix:suffix_a2m]) {
                     /// Add method
                     Method      method          = class_getInstanceMethod(clz, NSSelectorFromString(methodName));
                     class_addMethod(orgClz, NSSelectorFromString(methodName), method_getImplementation(method), method_getTypeEncoding(method));
@@ -284,13 +284,13 @@ static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_
             Method *clzMethodLi = class_copyMethodList(clz, &clzMethodCount);
             for(int i = 0; i < clzMethodCount; i++) {
                 NSString *methodName = NSStringFromSelector(method_getName(clzMethodLi[i]));
-                if([methodName containsString:suffix_h4m]) {
+                if([methodName hasSuffix:suffix_h4m]) {
                     /// Hook method
                     Method      method          = class_getInstanceMethod(clz, NSSelectorFromString(methodName));
                     NSString    *orgMethodName  = [methodName componentsSeparatedByString:suffix_h4m].firstObject;
                     Method      orgMethod       = class_getInstanceMethod(orgClz, NSSelectorFromString(orgMethodName));
                     method_setImplementation(orgMethod, method_getImplementation(method));
-                } else if([methodName containsString:suffix_a2m]) {
+                } else if([methodName hasSuffix:suffix_a2m]) {
                     /// Add method
                     Method      method          = class_getInstanceMethod(clz, NSSelectorFromString(methodName));
                     class_addMethod(orgClz, NSSelectorFromString(methodName), method_getImplementation(method), method_getTypeEncoding(method));
@@ -311,7 +311,7 @@ static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_
         unsigned int count_p  = 0;
         Class       clz         = clzLi[count_clz - 1];
         NSString    *clzName    = NSStringFromClass(clz);
-        if(![clzName containsString:suffix_hook]) continue;
+        if(![clzName hasSuffix:suffix_hook]) continue;
         objc_property_t *pli = class_copyPropertyList(clz, &count_p);
         do {
             NSString    *orgClzName;
@@ -319,7 +319,7 @@ static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_
             orgClzName  = [clzName componentsSeparatedByString:suffix_hook].firstObject;
             orgClz      = NSClassFromString(orgClzName);
             objc_property_t pt = pli[count_p - 1];
-            if(![@(property_getName(pt)) containsString:suffix_a2p]) continue;
+            if(![@(property_getName(pt)) hasSuffix:suffix_a2p]) continue;
             /// 钩子文件增加属性xxx_a2p后，该方法被加到目标上
             H4pInstanceProperty *myPt = [H4pInstanceProperty property:pt];
             if(!myPt) continue;
@@ -327,10 +327,10 @@ static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_
             objc_property_attribute_t *attli = property_copyAttributeList(pt, &count_att);
             class_addProperty(orgClz, property_getName(pt), attli, count_att);/// 目标类添加属性
             if(myPt.setter.length) {
-                class_addMethod(orgClz, NSSelectorFromString(myPt.setter), ((IMP)(called_category_property_setter)), "v@:@");
+                class_addMethod(orgClz, NSSelectorFromString(myPt.setter), ((IMP)(a2p_category_property_setter)), "v@:@");
             }
             if(myPt.getter.length) {
-                class_addMethod(orgClz, NSSelectorFromString(myPt.getter), ((IMP)(called_category_property_getter)), "@@:");
+                class_addMethod(orgClz, NSSelectorFromString(myPt.getter), ((IMP)(a2p_category_property_getter)), "@@:");
             }
             myPt.src = orgClz;
             /// 维护映射表
@@ -460,14 +460,14 @@ NS_INLINE H4pInstanceProperty *_Nonnull propertyWithObjectSelector(id _Nonnull o
 }
 
 /// 分类添加的属性setter；开发者以在此处通过条件断点调试；
-void called_category_property_setter(id object, SEL sel, id value) {
+void a2p_category_property_setter(id object, SEL sel, id value) {
     H4pInstanceProperty *pt = propertyWithObjectSelector(object, sel, true);
     assert(pt);
     [pt setValue:value];
 }
 
 /// 分类添加的属性getter；开发者以在此处通过条件断点调试；
-id called_category_property_getter(id object, SEL sel) {
+id a2p_category_property_getter(id object, SEL sel) {
     H4pInstanceProperty *pt = propertyWithObjectSelector(object, sel, false);
     assert(pt);
     return [pt getValue];
