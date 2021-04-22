@@ -22,12 +22,20 @@ void a2p_category_property_setter(id object, SEL sel, id value);
 
 id a2p_category_property_getter(id object, SEL sel);
 
+NS_INLINE NSArray <NSString *>* h4pAllFilesAtPath(NSString *path);
+
 /// object(weak) --- propertys; property --- value
 /// 对象映射属性集合，属性映射值
 static NSMapTable<id, NSMutableSet<H4pInstanceProperty *> *>* _map_category_OP;
 
 /// 缓存的原型，类映射属性；Class --- propertys
 static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_CP;
+
+/// 项目配置的bundle
+static NSBundle *_h4pMainBundle;
+
+/// 动态生成的
+static NSBundle *_h4pDocBundle;
 
 #pragma mark - H4pA2pValue
 /// 扩展属性的代理值，实现重写geeter和setter
@@ -253,7 +261,9 @@ static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_
             Class   orgClz      = NSClassFromString(orgClzName);
             Class   superClz    = class_getSuperclass(clz);
             Class   orgSuperClz = class_getSuperclass(orgClz);
-            if(superClz != orgSuperClz) {
+            if(superClz != orgSuperClz &&
+               /// 排除分类
+               superClz != orgClz) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
                 class_setSuperclass(orgClz, superClz);
@@ -313,12 +323,12 @@ static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_
         NSString    *clzName    = NSStringFromClass(clz);
         if(![clzName hasSuffix:suffix_hook]) continue;
         objc_property_t *pli = class_copyPropertyList(clz, &count_p);
-        do {
+        while (count_p --) {
             NSString    *orgClzName;
             Class       orgClz;
             orgClzName  = [clzName componentsSeparatedByString:suffix_hook].firstObject;
             orgClz      = NSClassFromString(orgClzName);
-            objc_property_t pt = pli[count_p - 1];
+            objc_property_t pt = pli[count_p];
             if(![@(property_getName(pt)) hasSuffix:suffix_a2p]) continue;
             /// 钩子文件增加属性xxx_a2p后，该方法被加到目标上
             H4pInstanceProperty *myPt = [H4pInstanceProperty property:pt];
@@ -341,87 +351,135 @@ static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_
             }
             [map_pts addObject:myPt];
             free(attli);
-        } while (--count_p);
+        }
         free(pli);
-    }while(--count_clz);
+    } while(--count_clz);
     free(clzLi);
 }
 
-+ (void)resourceHook {
-    NSString        *bundlePath     = [[NSBundle mainBundle] pathForResource:NSStringFromClass(self) ofType:@"bundle"];
-    NSString        *mainbunlePath  = [NSBundle.mainBundle resourcePath];
-    NSAssert(bundlePath, @"Nonnull");
-    NSFileManager   *fm             = [NSFileManager defaultManager];
-    NSError         *err;
-    NSArray <NSString *>* dirs      = [fm contentsOfDirectoryAtPath:bundlePath error:&err];
-    for (NSString *dirName in dirs) {
-        // 被拷贝子项的文件夹
-        NSString *fromPath = [bundlePath stringByAppendingPathComponent:dirName];/// bundle_h4p/dst
-        if([dirName isEqualToString:@"mainBundle"]) {
-            // 要拷贝到mainBunle的
-            [self copyFrom:fromPath to:mainbunlePath];
-        } else {
-            // 要拷贝到指定目录的的路径
-            NSArray <NSString *>*   fNames          = [fm contentsOfDirectoryAtPath:fromPath error:&err];
-            NSMutableArray          *dstDirLastCpt  = NSMutableArray.array;/// 用于拼接目标地址的后缀
-            for (NSString *fName in fNames) { /// bundle/dst/xxx
-                NSString *fpath = [fromPath stringByAppendingPathComponent:fName];
-                // 查找配置文件
-                if([fName isEqualToString:@"h4p"]) {/// bundle/dst/h4p
-                    NSString *content = [NSString stringWithContentsOfFile:fpath encoding:(NSUTF8StringEncoding) error:&err];
-                    [dstDirLastCpt addObjectsFromArray:[content componentsSeparatedByString:@"\n"]];
-                    break;
-                }
-            }
-            // 从配置文件的信息中去取得目标文件夹的位置
-            for (NSString *lastCpt in dstDirLastCpt) {
-                NSString *dstPath = nil;
-                if([lastCpt isEqualToString:@"mainBundle"]) {
-                    dstPath = [mainbunlePath stringByAppendingPathComponent:dirName];
-                    if([fm fileExistsAtPath:dstPath]) {
-                        [self copyFrom:fromPath to:dstPath];
-                        break;
-                    }
-                } else {
-                    dstPath = [mainbunlePath stringByAppendingPathComponent:lastCpt];
-                    dstPath = [dstPath stringByAppendingPathComponent:dirName];
-                    if([fm fileExistsAtPath:dstPath]) {
-                        [self copyFrom:fromPath to:dstPath];
-                        break;
-                    }
-                }
++ (void)h4pResourceWork {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSString *bundlePath = [[NSBundle mainBundle] pathForResource:NSStringFromClass(self) ofType:@"bundle"];
+        _h4pMainBundle = [NSBundle bundleWithPath:bundlePath];
+        NSString *docPath = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
+        NSString *docBundlePath = [docPath  stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.bundle", NSStringFromClass(self)]];
+        NSFileManager *fm = [NSFileManager defaultManager];
+        if(![fm fileExistsAtPath:docBundlePath]) {
+            if(![fm createDirectoryAtPath:docBundlePath withIntermediateDirectories:NO attributes:nil error:nil]) {
+                _h4pDocBundle = nil;
             }
         }
+        _h4pDocBundle = [NSBundle bundleWithPath:docBundlePath];
+    });
+    [self createH4pResource];
+}
+
++ (void)createH4pResource {
+    NSFileManager           *fm             = [NSFileManager defaultManager];
+    NSArray <NSString *>    *dirs_sdk_main  = [fm contentsOfDirectoryAtPath:_h4pMainBundle.resourcePath error:nil];
+    NSString *curVersion = [self h4pVersionWith:[_h4pMainBundle pathForResource:@"h4p" ofType:nil]];
+    NSString *oldVersion = [self h4pVersionWith:[_h4pDocBundle  pathForResource:@"h4p" ofType:nil]];
+    NSAssert(curVersion, @"Nonnull! Missing H4P configuration file.");
+    /// 版本控制
+    if([oldVersion isEqualToString:curVersion]) {
+        return;
+    }
+    
+    /// 合并资源
+    /// 查找每一级目录下的根据配置文件，以此找到目标文件夹
+    NSString *mbPath  = [NSBundle mainBundle].resourcePath;
+    NSUInteger h4pIdx = [dirs_sdk_main indexOfObject:@"h4p"];
+    for (int i = 0; i < dirs_sdk_main.count; i++) {
+        if (i == h4pIdx) continue;
+        NSString *dirName = dirs_sdk_main[i];
+        NSString *dirPath = [_h4pMainBundle.resourcePath stringByAppendingPathComponent:dirName];
+        NSString *h4pPath = [dirPath stringByAppendingPathComponent:@"h4p"];
+        NSAssert([fm fileExistsAtPath:h4pPath], @"Nonnull! Missing H4P configuration file.");
+        NSArray  *searchs = [self h4pContentsForPath:h4pPath];
+        for (NSString *search in searchs) {
+            NSString *searchPath = [mbPath stringByAppendingPathComponent:search];
+            if([fm fileExistsAtPath:searchPath]){
+                [self combineResource:dirName from:searchPath];
+                break;
+            }
+        }
+    }
+    /// 覆盖版本号
+    if(oldVersion) {
+        [fm copyItemAtPath:[_h4pMainBundle pathForResource:@"h4p" ofType:nil] toPath:[_h4pDocBundle pathForResource:@"h4p" ofType:nil] error:nil];
     }
 }
 
-/// 前提是
-/// @param from 被拷贝内容的父级
-/// @param to   目标文件夹的父级
-+ (void)copyFrom:(NSString *)from to:(NSString *)to {
-    NSError         *err;
-    NSFileManager   *fm         = [NSFileManager defaultManager];
-    NSString        *h4p        = [to stringByAppendingPathComponent:@"h4p"];/// h4p文件除了配置的作用还被拿来标记是否进行过资源替换
-    NSArray <NSString *>* files = [fm contentsOfDirectoryAtPath:from error:&err];
-    if([fm fileExistsAtPath:h4p]) {
-        return;
++ (NSBundle *)h4pBundleWithName:(NSString *)name {
+    return [NSBundle bundleWithPath:[_h4pDocBundle pathForResource:name ofType:nil]];
+}
+
+/// h4p bundle与指定文件夹合并
+/// @param name 资源文件夹名
+/// @param path 目标资源文件夹路径，如果不存在则无为
++ (void)combineResource:(NSString *)name from:(NSString *)path {
+    /// 拷贝旧资源
+    NSFileManager *fm = [NSFileManager defaultManager];
+    if(![fm fileExistsAtPath:path]) return;
+    NSString *dstPath = [_h4pDocBundle.resourcePath stringByAppendingPathComponent:name];
+    if([fm fileExistsAtPath:dstPath]) {
+        [fm removeItemAtPath:dstPath error:nil];
     }
-    for (NSString* file in files) {
-        NSString *dstFile = [to stringByAppendingPathComponent:file];
-        if([fm fileExistsAtPath:dstFile]) {
-            [fm removeItemAtPath:dstFile error:&err];
-            [fm copyItemAtPath:[from stringByAppendingPathComponent:file] toPath:dstFile error:&err];
-        } else {
-            [fm copyItemAtPath:[from stringByAppendingPathComponent:file] toPath:dstFile error:&err];
+    [fm copyItemAtPath:path toPath:dstPath error:nil];
+    
+    /// 以新资源覆盖
+    NSString * fromPath         = [_h4pMainBundle.resourcePath stringByAppendingPathComponent:name];
+    NSAssert([fm fileExistsAtPath:fromPath], @"Missing resource!");
+    NSArray <NSString *> *items = h4pAllFilesAtPath(fromPath);
+    for (NSString *itemPath in items) {
+        NSString *toPath        = [itemPath componentsSeparatedByString:_h4pMainBundle.resourcePath].lastObject; /// /SDK/...
+        toPath                  = [_h4pDocBundle.resourcePath stringByAppendingPathComponent:toPath];
+        if([fm fileExistsAtPath:toPath]) {
+            [fm removeItemAtPath:toPath error:nil];
+        }
+        [fm copyItemAtPath:itemPath toPath:toPath error:nil];
+    }
+}
+
+/// 取得h4p资源版本号
++ (NSString *)h4pVersionWith:(NSString *)path {
+    return [self h4pContentsForPath:path].firstObject;
+}
+
+/// 取得h4p文件每行内容
++ (NSArray *)h4pContentsForPath:(NSString *)path {
+    NSFileManager *fm = [NSFileManager defaultManager];
+    if(![fm fileExistsAtPath:path]) {
+        return nil;
+    }
+    NSMutableArray *lines = [[[NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil] componentsSeparatedByString:@"\n"] mutableCopy];
+    for (int i = 0; i < lines.count; i++) {
+        if(0 == [lines[i] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]].length) {
+            [lines removeObjectAtIndex:i];
         }
     }
-    if(![fm fileExistsAtPath:h4p]) {
-        [fm createFileAtPath:h4p contents:nil attributes:nil];
-    }
-    /// 拷贝完成，如果没有h4p文件则创建一个
+    return lines.copy;
 }
 
 @end
+
+/// 取得路径下所有文件路径
+NS_INLINE NSArray <NSString *>* h4pAllFilesAtPath(NSString *path) {
+    NSFileManager  *fm                      = [NSFileManager defaultManager];
+    NSDirectoryEnumerator *dirEnumerator    = [fm enumeratorAtURL:[NSURL URLWithString:path] includingPropertiesForKeys:@[NSURLNameKey, NSURLIsDirectoryKey] options:NSDirectoryEnumerationSkipsHiddenFiles   errorHandler:nil];
+    NSMutableArray *files                   =[NSMutableArray array];
+    for (NSURL *pathURL in dirEnumerator) {
+        NSNumber *isDirectory;
+        [pathURL getResourceValue:&isDirectory forKey:NSURLIsDirectoryKey error:NULL];
+        if([isDirectory boolValue] == NO) {
+            NSString *path;
+            [pathURL getResourceValue:&path forKey:NSURLPathKey error:NULL];
+            [files addObject:path];
+        }
+    }
+    return [files copy];
+}
 
 NS_INLINE H4pInstanceProperty *_Nonnull propertyWithObjectSelector(id _Nonnull object, SEL _Nonnull sel, bool isSetter) {
     H4pInstanceProperty *comp;/// 索引对象
@@ -458,6 +516,8 @@ NS_INLINE H4pInstanceProperty *_Nonnull propertyWithObjectSelector(id _Nonnull o
     }
     return property;
 }
+
+#pragma mark - 分类增加的属性 Category property getter and setter.
 
 /// 分类添加的属性setter；开发者以在此处通过条件断点调试；
 void a2p_category_property_setter(id object, SEL sel, id value) {
