@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
   s.name         = "ObjcHook4pod"
-  s.version      = "1.3"
-  s.summary      = 'Copy & Hook. Modify source code for CocoaPods or 3rd SDK.(swift & ObjC)'
+  s.version      = "1.4"
+  s.summary      = 'Modify source code for CocoaPods or 3rd SDK.(Swift & Objc)'
   s.homepage     = 'https://github.com/Meterwhite/ObjcHook4pod'
   s.license      = 'MIT'
   s.author       = { "Meterwhite" => "meterwhite@outlook.com" }
