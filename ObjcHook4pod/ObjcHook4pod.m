@@ -18,26 +18,35 @@ typedef enum : NSUInteger {
 
 @class H4pInstanceProperty;
 
-void a2p_category_property_setter(id object, SEL sel, id value);
-
-id a2p_category_property_getter(id object, SEL sel);
-
-NS_INLINE NSArray <NSString *>* h4pAllFilesAtPath(NSString *path);
+#pragma mark - 缓存内容
 
 /// object(weak) --- propertys; property --- value
 /// 对象映射属性集合，属性映射值
-static NSMapTable<id, NSMutableSet<H4pInstanceProperty *> *>* _map_category_OP;
+static NSMapTable<id, NSMutableSet<H4pInstanceProperty *> *>*       _map_category_OP;
 
 /// 缓存的原型，类映射属性；Class --- propertys
-static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> * _map_category_CP;
+static NSMapTable<Class, NSMutableSet<H4pInstanceProperty *> *> *   _map_category_CP;
 
 /// 项目配置的bundle
 static NSBundle *_h4pMainBundle;
 
-/// 动态生成的
+/// 动态生成的资源包 最终使用他
 static NSBundle *_h4pDocBundle;
 
+#pragma mark - C函数声明，实现在底部
+
+void a2p_category_property_setter(id object, SEL sel, id value);
+
+id a2p_category_property_getter(id object, SEL sel);
+
+bool isSELMatchedH4PSuffix(NSString *selString, NSString *suffix);
+
+NS_INLINE NSString* orgSELNameFromH4p(NSString *selString, NSString *suffix);
+
+NS_INLINE NSArray <NSString *>* h4pAllFilesAtPath(NSString *path);
+
 #pragma mark - H4pA2pValue
+
 /// 扩展属性的代理值，实现重写geeter和setter
 @interface H4pA2pValue : NSProxy
 
@@ -254,7 +263,7 @@ static NSBundle *_h4pDocBundle;
     do {
         Class       clz         = clzLi[count - 1];
         NSString    *clzName    = NSStringFromClass(clz);
-        if(![clzName hasSuffix:suffix_hook]) continue;
+        if(![clzName hasSuffix:suffix_hook] ) continue;
         do {
             /// 同步父类
             NSString*orgClzName = [clzName componentsSeparatedByString:suffix_hook].firstObject;
@@ -274,13 +283,13 @@ static NSBundle *_h4pDocBundle;
             Method *itMethodLi = class_copyMethodList(clz, &itMethodCount);
             for(int i = 0; i < itMethodCount; i++) {
                 NSString *methodName = NSStringFromSelector(method_getName(itMethodLi[i]));
-                if([methodName hasSuffix:suffix_h4m]) {
+                if(isSELMatchedH4PSuffix(methodName, suffix_h4m)) {
                     /// Hook method
                     Method      method          = class_getInstanceMethod(clz, NSSelectorFromString(methodName));
-                    NSString    *orgMethodName  = [methodName componentsSeparatedByString:suffix_h4m].firstObject;
+                    NSString    *orgMethodName  = orgSELNameFromH4p(methodName, suffix_h4m);
                     Method      orgMethod       = class_getInstanceMethod(orgClz, NSSelectorFromString(orgMethodName));
                     method_setImplementation(orgMethod, method_getImplementation(method));
-                } else if ([methodName hasSuffix:suffix_a2m]) {
+                } else if (isSELMatchedH4PSuffix(methodName, suffix_a2m)) {
                     /// Add method
                     Method      method          = class_getInstanceMethod(clz, NSSelectorFromString(methodName));
                     class_addMethod(orgClz, NSSelectorFromString(methodName), method_getImplementation(method), method_getTypeEncoding(method));
@@ -294,13 +303,13 @@ static NSBundle *_h4pDocBundle;
             Method *clzMethodLi = class_copyMethodList(clz, &clzMethodCount);
             for(int i = 0; i < clzMethodCount; i++) {
                 NSString *methodName = NSStringFromSelector(method_getName(clzMethodLi[i]));
-                if([methodName hasSuffix:suffix_h4m]) {
+                if(isSELMatchedH4PSuffix(methodName, suffix_h4m)) {
                     /// Hook method
                     Method      method          = class_getInstanceMethod(clz, NSSelectorFromString(methodName));
-                    NSString    *orgMethodName  = [methodName componentsSeparatedByString:suffix_h4m].firstObject;
+                    NSString    *orgMethodName  = orgSELNameFromH4p(methodName, suffix_h4m);
                     Method      orgMethod       = class_getInstanceMethod(orgClz, NSSelectorFromString(orgMethodName));
                     method_setImplementation(orgMethod, method_getImplementation(method));
-                } else if([methodName hasSuffix:suffix_a2m]) {
+                } else if(isSELMatchedH4PSuffix(methodName, suffix_a2m)) {
                     /// Add method
                     Method      method          = class_getInstanceMethod(clz, NSSelectorFromString(methodName));
                     class_addMethod(orgClz, NSSelectorFromString(methodName), method_getImplementation(method), method_getTypeEncoding(method));
@@ -319,14 +328,14 @@ static NSBundle *_h4pDocBundle;
     NSString    *suffix_a2p     = @"_a2p";
     do {
         unsigned int count_p  = 0;
-        Class       clz         = clzLi[count_clz - 1];
-        NSString    *clzName    = NSStringFromClass(clz);
-        if(![clzName hasSuffix:suffix_hook]) continue;
-        objc_property_t *pli = class_copyPropertyList(clz, &count_p);
+        Class       aClz         = clzLi[count_clz - 1];
+        NSString    *aClzName    = NSStringFromClass(aClz);
+        if(![aClzName hasSuffix:suffix_hook]) continue;
+        objc_property_t *pli = class_copyPropertyList(aClz, &count_p);
         while (count_p --) {
             NSString    *orgClzName;
             Class       orgClz;
-            orgClzName  = [clzName componentsSeparatedByString:suffix_hook].firstObject;
+            orgClzName  = [aClzName componentsSeparatedByString:suffix_hook].firstObject;
             orgClz      = NSClassFromString(orgClzName);
             objc_property_t pt = pli[count_p];
             if(![@(property_getName(pt)) hasSuffix:suffix_a2p]) continue;
@@ -433,7 +442,7 @@ static NSBundle *_h4pDocBundle;
     NSAssert([fm fileExistsAtPath:fromPath], @"Missing resource!");
     NSArray <NSString *> *items = h4pAllFilesAtPath(fromPath);
     for (NSString *itemPath in items) {
-        NSString *toPath        = [itemPath componentsSeparatedByString:_h4pMainBundle.resourcePath].lastObject; /// /SDK/...
+        NSString *toPath        = [itemPath componentsSeparatedByString:_h4pMainBundle.resourcePath].lastObject; /// 路径：/SDK/...
         toPath                  = [_h4pDocBundle.resourcePath stringByAppendingPathComponent:toPath];
         if([fm fileExistsAtPath:toPath]) {
             [fm removeItemAtPath:toPath error:nil];
@@ -515,6 +524,19 @@ NS_INLINE H4pInstanceProperty *_Nonnull propertyWithObjectSelector(id _Nonnull o
         return property;
     }
     return property;
+}
+
+/// 判断h4p方法名
+bool isSELMatchedH4PSuffix(NSString *selString, NSString *suffix) {
+    if([selString hasSuffix:@":"]) {
+        suffix = [suffix stringByAppendingString:@":"];
+    }
+    return [selString hasSuffix:suffix];
+}
+
+/// 获取h4p方法原始名
+NS_INLINE NSString* orgSELNameFromH4p(NSString *selString, NSString *suffix) {
+    return [[selString componentsSeparatedByString:suffix] componentsJoinedByString:@""];
 }
 
 #pragma mark - 分类增加的属性 Category property getter and setter.
