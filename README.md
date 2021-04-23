@@ -1,6 +1,6 @@
 # ObjcHook4pod
 ## Copy & Hook. Modify source code for CocoaPods or 3rd SDK. 
-- It wokrs in Runtime (swift or ObjC, NSObject)
+- It wokrs at runtime (swift or ObjC, NSObject)
 
 ####
 目的：想修改CocoaPods的代码又想每次更新版本使用最新功能。此开源库以拷贝文件的方式先模拟出源码上下文环境，然后你可以通过指定某个方法来侵入，实现重写目标类的指定方法，添加目标类的新属性，甚至更换目标类的基类。
