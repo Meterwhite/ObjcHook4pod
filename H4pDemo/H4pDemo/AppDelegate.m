@@ -18,7 +18,6 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
     [ObjcHook4pod runtimeWork];
-    [ObjcHook4pod h4pResourceWork];
     return YES;
 }
 

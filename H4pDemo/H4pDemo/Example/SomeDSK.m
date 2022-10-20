@@ -15,8 +15,12 @@
 
 @implementation SomeDSK
 
-- (void)myMethod {
+- (void)myMethod1 {
     NSLog(@"%@", _myString);
+}
+
+- (void)myMethod2 {
+    [self myMethod];
 }
 
 @end

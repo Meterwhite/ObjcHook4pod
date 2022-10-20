@@ -14,8 +14,6 @@
 		187217DC2631287500A0130D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 187217DB2631287500A0130D /* Assets.xcassets */; };
 		187217DF2631287500A0130D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 187217DD2631287500A0130D /* LaunchScreen.storyboard */; };
 		187217E22631287500A0130D /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 187217E12631287500A0130D /* main.m */; };
-		187217EF2631489F00A0130D /* ObjcHook4pod.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 187217EE2631489F00A0130D /* ObjcHook4pod.bundle */; };
-		187217F52631491D00A0130D /* NSBundle+HXPhotoPicker_h4p.m in Sources */ = {isa = PBXBuildFile; fileRef = 187217F42631491D00A0130D /* NSBundle+HXPhotoPicker_h4p.m */; };
 		187217FB2631496C00A0130D /* ObjcHook4pod.m in Sources */ = {isa = PBXBuildFile; fileRef = 187217FA2631496C00A0130D /* ObjcHook4pod.m */; };
 		18721800263149E300A0130D /* SomeDSK.m in Sources */ = {isa = PBXBuildFile; fileRef = 187217FF263149E300A0130D /* SomeDSK.m */; };
 		1872180526314A5200A0130D /* SomeSDK_h4p.m in Sources */ = {isa = PBXBuildFile; fileRef = 1872180426314A5200A0130D /* SomeSDK_h4p.m */; };
@@ -35,9 +33,6 @@
 		187217DE2631287500A0130D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		187217E02631287500A0130D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		187217E12631287500A0130D /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		187217EE2631489F00A0130D /* ObjcHook4pod.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = ObjcHook4pod.bundle; sourceTree = "<group>"; };
-		187217F32631491D00A0130D /* NSBundle+HXPhotoPicker_h4p.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSBundle+HXPhotoPicker_h4p.h"; sourceTree = "<group>"; };
-		187217F42631491D00A0130D /* NSBundle+HXPhotoPicker_h4p.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSBundle+HXPhotoPicker_h4p.m"; sourceTree = "<group>"; };
 		187217F92631496C00A0130D /* ObjcHook4pod.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ObjcHook4pod.h; sourceTree = "<group>"; };
 		187217FA2631496C00A0130D /* ObjcHook4pod.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ObjcHook4pod.m; sourceTree = "<group>"; };
 		187217FE263149E300A0130D /* SomeDSK.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SomeDSK.h; sourceTree = "<group>"; };
@@ -82,7 +77,6 @@
 		187217CE2631287200A0130D /* H4pDemo */ = {
 			isa = PBXGroup;
 			children = (
-				187217FD263149C400A0130D /* OtherSDK */,
 				187217F82631496C00A0130D /* ObjcHook4pod */,
 				187217F1263148BB00A0130D /* Example */,
 				187217CF2631287200A0130D /* AppDelegate.h */,
@@ -103,20 +97,12 @@
 		187217F1263148BB00A0130D /* Example */ = {
 			isa = PBXGroup;
 			children = (
-				1872180226314A3100A0130D /* HookCode */,
-				187217F22631491D00A0130D /* HookRecource */,
-				187217EE2631489F00A0130D /* ObjcHook4pod.bundle */,
+				187217FE263149E300A0130D /* SomeDSK.h */,
+				187217FF263149E300A0130D /* SomeDSK.m */,
+				1872180326314A5200A0130D /* SomeSDK_h4p.h */,
+				1872180426314A5200A0130D /* SomeSDK_h4p.m */,
 			);
 			path = Example;
-			sourceTree = "<group>";
-		};
-		187217F22631491D00A0130D /* HookRecource */ = {
-			isa = PBXGroup;
-			children = (
-				187217F32631491D00A0130D /* NSBundle+HXPhotoPicker_h4p.h */,
-				187217F42631491D00A0130D /* NSBundle+HXPhotoPicker_h4p.m */,
-			);
-			path = HookRecource;
 			sourceTree = "<group>";
 		};
 		187217F82631496C00A0130D /* ObjcHook4pod */ = {
@@ -127,24 +113,6 @@
 			);
 			name = ObjcHook4pod;
 			path = ../../ObjcHook4pod;
-			sourceTree = "<group>";
-		};
-		187217FD263149C400A0130D /* OtherSDK */ = {
-			isa = PBXGroup;
-			children = (
-				187217FE263149E300A0130D /* SomeDSK.h */,
-				187217FF263149E300A0130D /* SomeDSK.m */,
-			);
-			path = OtherSDK;
-			sourceTree = "<group>";
-		};
-		1872180226314A3100A0130D /* HookCode */ = {
-			isa = PBXGroup;
-			children = (
-				1872180326314A5200A0130D /* SomeSDK_h4p.h */,
-				1872180426314A5200A0130D /* SomeSDK_h4p.m */,
-			);
-			path = HookCode;
 			sourceTree = "<group>";
 		};
 		ED4386D9ADBFF2DCF1565287 /* Frameworks */ = {
@@ -223,7 +191,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				187217DF2631287500A0130D /* LaunchScreen.storyboard in Resources */,
-				187217EF2631489F00A0130D /* ObjcHook4pod.bundle in Resources */,
 				187217DC2631287500A0130D /* Assets.xcassets in Resources */,
 				187217DA2631287200A0130D /* Main.storyboard in Resources */,
 			);
@@ -284,7 +251,6 @@
 				187217FB2631496C00A0130D /* ObjcHook4pod.m in Sources */,
 				187217D12631287200A0130D /* AppDelegate.m in Sources */,
 				187217E22631287500A0130D /* main.m in Sources */,
-				187217F52631491D00A0130D /* NSBundle+HXPhotoPicker_h4p.m in Sources */,
 				187217D42631287200A0130D /* SceneDelegate.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
